@@ -36,5 +36,4 @@ jobs:
 
       - name: Run security scan
         run: |
-          cargo install cargo-audit
           cargo audit
