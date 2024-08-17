@@ -1,5 +1,7 @@
 use rstest::rstest;
+use sqlx::{Connection, PgConnection};
 use std::net::TcpListener;
+use zero2prod::configuration::get_configuration;
 use zero2prod::startup::run;
 
 #[tokio::test]
@@ -24,6 +26,11 @@ async fn health_check_works() {
 async fn given_valid_request_when_subscribe_then_200() {
     // arrange
     let host = spawn_app();
+    let configuration = get_configuration().unwrap();
+    let connection_string = configuration.database.connection_string();
+    let mut connection = PgConnection::connect(&connection_string)
+        .await
+        .expect("Failed to connect to database");
     let client = reqwest::Client::new();
 
     // act
@@ -38,6 +45,13 @@ async fn given_valid_request_when_subscribe_then_200() {
     // assert
     assert_eq!(200, response.status().as_u16());
     assert_eq!(Some(0), response.content_length());
+
+    let saved = sqlx::query!("SELECT email, name FROM subscriptions")
+        .fetch_one(&mut connection)
+        .await
+        .expect("failed to save sub");
+    assert_eq!(saved.email, "test@test.com");
+    assert_eq!(saved.name, "dummy");
 }
 
 #[rstest]
