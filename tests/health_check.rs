@@ -75,9 +75,8 @@ async fn given_invalid_body_when_subscribe_then_400(#[case] invalid_body: String
 
 async fn spawn_app() -> TestApp {
     let mut configuration = get_configuration().unwrap();
-    configuration.database.database_name = String::from(Uuid::new_v4());
-    let connection_string = configuration.database.connection_string();
-    let pool = configure_database(&configuration.database);
+    configuration.database.database_name = Uuid::new_v4().to_string();
+    let pool = configure_database(&configuration.database).await;
 
     let listener = TcpListener::bind("localhost:0").expect("Failed to bind");
     let port = listener.local_addr().unwrap().port();
@@ -97,7 +96,7 @@ pub async fn configure_database(config: &DatabaseSettings) -> PgPool {
 
     // create the brand-new database
     connection
-        .execute(format!("CREATE DATABASE {}", config.database_name).as_str())
+        .execute(format!(r#"CREATE DATABASE "{}";"#, config.database_name).as_str())
         .await
         .expect("failed to create db");
 
